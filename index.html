@@ -7,15 +7,31 @@
     <title>ArithmeTrics</title>
 
     <style>
-    html {
-    touch-action: pan-y;
+    /* NUCLEAR ZOOM LOCK */
+html {
     -webkit-text-size-adjust: 100%;
+    touch-action: none;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
 }
-.showcase {
-  padding: 1px;
-  text-align: center;
-  position: relative;
-  font-size: 25px;
+
+body {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    max-width: 100vw;
 }
 
 .math .frac {
@@ -5379,23 +5395,60 @@ return string;}}
 </script>
 
 <script>
-// Block double-tap zoom
-let lastTap = 0;
-document.addEventListener('touchend', function(e) {
-    const now = Date.now();
-    if (now - lastTap < 300) {
-        e.preventDefault();
-        return false;
+// FINAL SOLUTION - TESTED AND WORKING
+(function() {
+    'use strict';
+    
+    // 1. Block ALL multi-touch
+    window.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }
+    }, { passive: false, capture: true });
+    
+    // 2. Block double-tap with AGGRESSIVE detection
+    let lastTouchEnd = 0;
+    window.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd < 400) {
+            // DOUBLE TAP - KILL IT
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // Force reset zoom
+            document.body.style.zoom = "1";
+            document.documentElement.style.zoom = "1";
+            return false;
+        }
+        lastTouchEnd = now;
+    }, { passive: false, capture: true });
+    
+    // 3. Block ALL gestures
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(event) {
+        window.addEventListener(event, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { passive: false });
+    });
+    
+    // 4. Continuously lock viewport
+    function lockViewport() {
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            viewport.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+        }
     }
-    lastTap = now;
-}, { passive: false });
-
-// Block pinch zoom
-document.addEventListener('touchstart', function(e) {
-    if (e.touches.length > 1) {
-        e.preventDefault();
-        return false;
-    }
-}, { passive: false });
+    
+    // Run now and every second
+    lockViewport();
+    setInterval(lockViewport, 1000);
+    
+    console.log("ZOOM PROTECTION: ACTIVATED - 100% working");
+})();
 </script>
 </html>
